@@ -1,0 +1,6 @@
+{
+  "name": "ANTARIKSHA RASA",
+  "description": "The Taste of the Universe — A futuristic orbital fine-dining restaurant fusing Indian cosmic aesthetics with space-station gastronomy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
