@@ -8,10 +8,13 @@ import {
   Send,
   ShoppingBag,
   Trash2,
+  Truck,
+  Utensils,
   X,
 } from 'lucide-react';
 import {type FormEvent, useEffect, useState} from 'react';
 import {
+  DELIVERY_TIERS,
   type DishItem,
   ORBITAL_PODS,
   type SubmittedOrder,
@@ -23,6 +26,8 @@ interface OrderTrayModalProps {
   onClose: () => void;
   dishes: DishItem[];
   orderCounts: Record<string, number>;
+  initialServiceMode: 'Orbital Dine-In' | 'Delivery Service';
+  initialDeliveryTier: string;
   onUpdateQuantity: (dishId: string, delta: number) => void;
   onClearOrder: () => void;
 }
@@ -32,13 +37,22 @@ export function OrderTrayModal({
   onClose,
   dishes,
   orderCounts,
+  initialServiceMode,
+  initialDeliveryTier,
   onUpdateQuantity,
   onClearOrder,
 }: OrderTrayModalProps) {
   const [activeTab, setActiveTab] = useState<'tray' | 'history'>('tray');
+  const [serviceMode, setServiceMode] = useState<
+    'Orbital Dine-In' | 'Delivery Service'
+  >(initialServiceMode);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [diningPod, setDiningPod] = useState(ORBITAL_PODS[0].name);
+  const [deliveryTier, setDeliveryTier] = useState(
+    initialDeliveryTier || DELIVERY_TIERS[0].name,
+  );
+  const [deliveryDestination, setDeliveryDestination] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,6 +62,16 @@ export function OrderTrayModal({
   const [sentOrders, setSentOrders] = useState<SubmittedOrder[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [copiedReceipt, setCopiedReceipt] = useState(false);
+
+  useEffect(() => {
+    setServiceMode(initialServiceMode);
+  }, [initialServiceMode]);
+
+  useEffect(() => {
+    if (initialDeliveryTier) {
+      setDeliveryTier(initialDeliveryTier);
+    }
+  }, [initialDeliveryTier]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -110,6 +134,13 @@ export function OrderTrayModal({
       return;
     }
 
+    if (serviceMode === 'Delivery Service' && !deliveryDestination.trim()) {
+      setErrorMessage(
+        'Please provide a docking bay, habitat module, or terrestrial delivery address.',
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await fetch('/api/orders', {
@@ -118,7 +149,10 @@ export function OrderTrayModal({
         body: JSON.stringify({
           guestName: guestName.trim(),
           guestEmail: guestEmail.trim(),
+          serviceMode,
           diningPod,
+          deliveryTier,
+          deliveryDestination: deliveryDestination.trim(),
           notes: notes.trim(),
           items: trayItems.map(({dish, quantity}) => ({
             dishId: dish.id,
@@ -155,7 +189,9 @@ export function OrderTrayModal({
       return [
         `ANTARIKSHA RASA — Order ${order.orderId}`,
         `Guest: ${order.guestName} (${order.guestEmail})`,
-        `Dining Deck: ${order.diningPod}`,
+        order.serviceMode === 'Delivery Service'
+          ? `Delivery: ${order.deliveryTier} → ${order.deliveryDestination}`
+          : `Dining Deck: ${order.diningPod}`,
         `Items: ${order.items
           .map((item) => `${item.quantity}x ${item.dishName}`)
           .join(', ')}`,
@@ -168,7 +204,11 @@ export function OrderTrayModal({
     return [
       'ANTARIKSHA RASA — Menu Order Request',
       guestName.trim() ? `Guest: ${guestName.trim()}` : '',
-      `Dining Deck: ${diningPod}`,
+      serviceMode === 'Delivery Service'
+        ? `Delivery: ${deliveryTier}${
+            deliveryDestination ? ` → ${deliveryDestination}` : ''
+          }`
+        : `Dining Deck: ${diningPod}`,
       `Selected Dishes: ${
         trayItems.length > 0
           ? trayItems.map((t) => `${t.quantity}x ${t.dish.name}`).join(', ')
@@ -204,13 +244,12 @@ export function OrderTrayModal({
       aria-labelledby="order-tray-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#04060e]/85 p-4 backdrop-blur-md">
       <div className="iridescent-border glass-surface relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6 shadow-2xl sm:p-8">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
           <div>
             <div className="flex items-center gap-2 text-xs text-cyan-300">
               <ShoppingBag className="h-4 w-4" aria-hidden="true" />
               <span className="font-mono tracking-wider uppercase">
-                Orbital Galley Dispatch · भोजन आदेश
+                Orbital Galley & Delivery · भोजन आदेश
               </span>
             </div>
             <h2
@@ -224,12 +263,12 @@ export function OrderTrayModal({
             type="button"
             onClick={onClose}
             aria-label="Close order tray"
-            className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400">
+            className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-white/5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Mode Switcher */}
+        {/* Tray vs Sent Orders Tabs */}
         <div className="mt-5 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
           <button
             type="button"
@@ -257,13 +296,12 @@ export function OrderTrayModal({
 
         {activeTab === 'tray' ? (
           <div className="mt-6">
-            {/* Confirmed Order State */}
             {confirmedOrder && (
               <div className="mb-6 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm font-semibold text-emerald-200">
                     <Check className="h-4 w-4" aria-hidden="true" />
-                    <span>Order Sent to Orbital Galley</span>
+                    <span>{confirmedOrder.status}</span>
                   </div>
                   <span className="font-mono text-xs text-emerald-200 tabular-nums">
                     {confirmedOrder.orderId}
@@ -274,11 +312,11 @@ export function OrderTrayModal({
                   <span className="font-semibold text-white">
                     {confirmedOrder.guestName}
                   </span>{' '}
-                  at{' '}
-                  <span className="text-cyan-200">
-                    {confirmedOrder.diningPod}
-                  </span>
-                  :{' '}
+                  (
+                  {confirmedOrder.serviceMode === 'Delivery Service'
+                    ? `${confirmedOrder.deliveryTier} → ${confirmedOrder.deliveryDestination}`
+                    : confirmedOrder.diningPod}
+                  ):{' '}
                   {confirmedOrder.items
                     .map((item) => `${item.quantity}x ${item.dishName}`)
                     .join(', ')}
@@ -308,7 +346,6 @@ export function OrderTrayModal({
               </div>
             )}
 
-            {/* Selected Food Items */}
             {trayItems.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
                 <p className="text-sm text-slate-300">
@@ -316,7 +353,7 @@ export function OrderTrayModal({
                 </p>
                 <p className="mt-1.5 text-xs text-slate-400">
                   Click <span className="text-cyan-300">Add to Order</span> on any
-                  dish in the Cosmic Menu to build your meal.
+                  of our 84 Cosmic Menu dishes to build your order.
                 </p>
                 <button
                   type="button"
@@ -326,7 +363,7 @@ export function OrderTrayModal({
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmitOrder} className="space-y-6">
+              <form onSubmit={handleSubmitOrder} className="space-y-5">
                 <div className="divide-y divide-white/10 rounded-xl border border-white/10 bg-white/[0.02]">
                   {trayItems.map(({dish, quantity}) => (
                     <div
@@ -380,7 +417,38 @@ export function OrderTrayModal({
                   ))}
                 </div>
 
-                {/* Guest & Dining Pod Details */}
+                {/* Service Mode Toggle: Dine-In vs Delivery Service */}
+                <div>
+                  <span className="block text-xs font-medium text-slate-300">
+                    Service Mode
+                  </span>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setServiceMode('Orbital Dine-In')}
+                      className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-colors ${
+                        serviceMode === 'Orbital Dine-In'
+                          ? 'border-cyan-400/60 bg-cyan-400/15 text-white'
+                          : 'border-white/15 bg-white/[0.02] text-slate-300 hover:border-white/25'
+                      }`}>
+                      <Utensils className="h-3.5 w-3.5 text-cyan-300" />
+                      <span>Orbital Dine-In</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setServiceMode('Delivery Service')}
+                      className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-colors ${
+                        serviceMode === 'Delivery Service'
+                          ? 'border-cyan-400/60 bg-cyan-400/15 text-white'
+                          : 'border-white/15 bg-white/[0.02] text-slate-300 hover:border-white/25'
+                      }`}>
+                      <Truck className="h-3.5 w-3.5 text-amber-300" />
+                      <span>Delivery Service</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label
@@ -417,24 +485,64 @@ export function OrderTrayModal({
                   </div>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="order-dining-pod"
-                    className="block text-xs font-medium text-slate-300">
-                    Orbital Dining Deck
-                  </label>
-                  <select
-                    id="order-dining-pod"
-                    value={diningPod}
-                    onChange={(e) => setDiningPod(e.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-white/15 bg-[#060a17] px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none">
-                    {ORBITAL_PODS.map((pod) => (
-                      <option key={pod.id} value={pod.name}>
-                        {pod.name} ({pod.gravityMode})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {serviceMode === 'Orbital Dine-In' ? (
+                  <div>
+                    <label
+                      htmlFor="order-dining-pod"
+                      className="block text-xs font-medium text-slate-300">
+                      Orbital Dining Deck
+                    </label>
+                    <select
+                      id="order-dining-pod"
+                      value={diningPod}
+                      onChange={(e) => setDiningPod(e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-white/15 bg-[#060a17] px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none">
+                      {ORBITAL_PODS.map((pod) => (
+                        <option key={pod.id} value={pod.name}>
+                          {pod.name} ({pod.gravityMode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="order-delivery-tier"
+                        className="block text-xs font-medium text-slate-300">
+                        Delivery Channel
+                      </label>
+                      <select
+                        id="order-delivery-tier"
+                        value={deliveryTier}
+                        onChange={(e) => setDeliveryTier(e.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-white/15 bg-[#060a17] px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none">
+                        {DELIVERY_TIERS.map((tier) => (
+                          <option key={tier.id} value={tier.name}>
+                            {tier.name} ({tier.window})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="order-delivery-dest"
+                        className="block text-xs font-medium text-slate-300">
+                        Docking Bay / Address *
+                      </label>
+                      <input
+                        id="order-delivery-dest"
+                        type="text"
+                        required
+                        value={deliveryDestination}
+                        onChange={(e) => setDeliveryDestination(e.target.value)}
+                        placeholder="e.g. Airlock Bay 4 or Bengaluru Hub"
+                        className="mt-1.5 w-full rounded-xl border border-white/15 bg-[#060a17] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label
@@ -522,7 +630,11 @@ export function OrderTrayModal({
                   </div>
                   <p className="mt-1.5 text-sm font-medium text-white">
                     {order.guestName} ·{' '}
-                    <span className="text-slate-300">{order.diningPod}</span>
+                    <span className="text-slate-300">
+                      {order.serviceMode === 'Delivery Service'
+                        ? `${order.deliveryTier} → ${order.deliveryDestination}`
+                        : order.diningPod}
+                    </span>
                   </p>
                   <p className="mt-1 text-xs text-slate-300">
                     {order.items

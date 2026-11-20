@@ -4,25 +4,49 @@
  */
 
 import {ShoppingBag} from 'lucide-react';
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {ClosingSection} from './components/ClosingSection';
 import {CosmicLoader} from './components/CosmicLoader';
 import {CosmicMenuSection} from './components/CosmicMenuSection';
+import {DeliveryAndFeedbackPage} from './components/DeliveryAndFeedbackPage';
 import {ExperienceSection} from './components/ExperienceSection';
 import {Footer} from './components/Footer';
 import {HeroSection} from './components/HeroSection';
-import {Navbar} from './components/Navbar';
+import {Navbar, type PageRoute} from './components/Navbar';
 import {OrderTrayModal} from './components/OrderTrayModal';
 import {StarfieldCanvas} from './components/StarfieldCanvas';
-import {VoyagePreviewModal} from './components/VoyagePreviewModal';
 import {WhySection} from './components/WhySection';
-import {MENU_DISHES} from './data/cosmicData';
+import {DELIVERY_TIERS, MENU_DISHES} from './data/cosmicData';
 
 const ORDER_STORAGE_KEY = 'antariksha_order_tray_v1';
 
+const VALID_ROUTES: PageRoute[] = [
+  '/',
+  '/experience',
+  '/menu',
+  '/delivery',
+  '/story',
+  '/reserve',
+];
+
+function normalizeRoute(pathname: string): PageRoute {
+  if (VALID_ROUTES.includes(pathname as PageRoute)) {
+    return pathname as PageRoute;
+  }
+  return '/';
+}
+
 export default function App() {
-  const [voyageModalOpen, setVoyageModalOpen] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState<PageRoute>(() =>
+    normalizeRoute(window.location.pathname),
+  );
   const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [orderServiceMode, setOrderServiceMode] = useState<
+    'Orbital Dine-In' | 'Delivery Service'
+  >('Orbital Dine-In');
+  const [orderDeliveryTier, setOrderDeliveryTier] = useState(
+    DELIVERY_TIERS[0].name,
+  );
   const [orderCounts, setOrderCounts] = useState<Record<string, number>>(() => {
     try {
       const saved = window.localStorage.getItem(ORDER_STORAGE_KEY);
@@ -45,6 +69,23 @@ export default function App() {
     }
   }, [orderCounts]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentRoute(normalizeRoute(window.location.pathname));
+      window.scrollTo({top: 0, behavior: 'auto'});
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleNavigate = useCallback((route: PageRoute) => {
+    if (window.location.pathname !== route) {
+      window.history.pushState({}, '', route);
+    }
+    setCurrentRoute(route);
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }, []);
+
   const handleUpdateOrder = (dishId: string, delta: number) => {
     setOrderCounts((prev) => {
       const nextCount = Math.max(0, Math.min(20, (prev[dishId] || 0) + delta));
@@ -61,13 +102,23 @@ export default function App() {
     setOrderCounts({});
   };
 
+  const handleStartDeliveryOrder = (tierName: string) => {
+    setOrderServiceMode('Delivery Service');
+    setOrderDeliveryTier(tierName);
+    if (Object.keys(orderCounts).length === 0) {
+      handleNavigate('/menu');
+    } else {
+      setOrderModalOpen(true);
+    }
+  };
+
   const totalOrderCount = Object.values(orderCounts).reduce(
     (sum, qty) => sum + qty,
     0,
   );
 
   return (
-    <div className="relative min-h-screen bg-[#04060e] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-[#04060e] text-slate-100">
       <CosmicLoader />
       <StarfieldCanvas />
 
@@ -80,25 +131,43 @@ export default function App() {
         <div className="absolute bottom-[12%] -left-24 h-[460px] w-[460px] rounded-full bg-amber-500/[0.05] blur-[140px]" />
       </div>
 
-      <Navbar onOpenVoyagePreview={() => setVoyageModalOpen(true)} />
+      <Navbar currentRoute={currentRoute} onNavigate={handleNavigate} />
 
-      <main className="relative z-10">
-        <HeroSection />
-        <ExperienceSection />
-        <CosmicMenuSection
-          dishes={MENU_DISHES}
-          orderCounts={orderCounts}
-          totalOrderCount={totalOrderCount}
-          onUpdateOrder={handleUpdateOrder}
-          onOpenOrderTray={() => setOrderModalOpen(true)}
-        />
-        <WhySection />
-        <ClosingSection onOpenVoyagePreview={() => setVoyageModalOpen(true)} />
+      <main className="relative z-10 flex-1">
+        {currentRoute === '/' && <HeroSection onNavigate={handleNavigate} />}
+        {currentRoute === '/experience' && (
+          <ExperienceSection onNavigate={handleNavigate} />
+        )}
+        {currentRoute === '/menu' && (
+          <CosmicMenuSection
+            dishes={MENU_DISHES}
+            orderCounts={orderCounts}
+            totalOrderCount={totalOrderCount}
+            onUpdateOrder={handleUpdateOrder}
+            onOpenOrderTray={() => setOrderModalOpen(true)}
+          />
+        )}
+        {currentRoute === '/delivery' && (
+          <DeliveryAndFeedbackPage
+            onNavigate={handleNavigate}
+            onStartDeliveryOrder={handleStartDeliveryOrder}
+          />
+        )}
+        {currentRoute === '/story' && (
+          <WhySection onNavigate={handleNavigate} />
+        )}
+        {currentRoute === '/reserve' && (
+          <ClosingSection
+            dishes={MENU_DISHES}
+            totalOrderCount={totalOrderCount}
+            onOpenOrderTray={() => setOrderModalOpen(true)}
+            onNavigate={handleNavigate}
+          />
+        )}
       </main>
 
-      <Footer onOpenVoyagePreview={() => setVoyageModalOpen(true)} />
+      <Footer onNavigate={handleNavigate} />
 
-      {/* Floating Order Tray Action when dishes are selected */}
       {totalOrderCount > 0 && !orderModalOpen && (
         <button
           type="button"
@@ -116,14 +185,10 @@ export default function App() {
         onClose={() => setOrderModalOpen(false)}
         dishes={MENU_DISHES}
         orderCounts={orderCounts}
+        initialServiceMode={orderServiceMode}
+        initialDeliveryTier={orderDeliveryTier}
         onUpdateQuantity={handleUpdateOrder}
         onClearOrder={handleClearOrder}
-      />
-
-      <VoyagePreviewModal
-        isOpen={voyageModalOpen}
-        onClose={() => setVoyageModalOpen(false)}
-        dishes={MENU_DISHES}
       />
     </div>
   );

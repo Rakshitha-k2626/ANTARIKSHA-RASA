@@ -1,3 +1,10 @@
+import {
+  EXPANDED_CELESTIAL_SWEETS,
+  EXPANDED_ELIXIRS,
+  EXPANDED_MAIN_ORBITAL,
+  EXPANDED_MICRO_G_BITES,
+} from './expandedMenu';
+
 export interface ExperienceItem {
   id: string;
   index: string;
@@ -39,12 +46,35 @@ export interface SubmittedOrder {
   orderId: string;
   guestName: string;
   guestEmail: string;
+  serviceMode: 'Orbital Dine-In' | 'Delivery Service';
   diningPod: string;
+  deliveryDestination: string;
+  deliveryTier: string;
   notes: string;
   items: OrderLineItem[];
   totalItems: number;
   createdAt: string;
   status: string;
+}
+
+export interface CustomerFeedback {
+  id: string;
+  authorName: string;
+  roleOrMission: string;
+  experienceType: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface DeliveryTier {
+  id: string;
+  name: string;
+  sanskritName: string;
+  window: string;
+  range: string;
+  packaging: string;
+  description: string;
 }
 
 export interface WhyPillar {
@@ -202,6 +232,43 @@ export const MENU_DISHES: DishItem[] = [
     nutritionProfile: '390 kcal · Roasted lotus seed & raw cacao minerals',
     tastingNotes: 'Pistachio makhana, saffron caramel, rosewater & dark cacao',
     servingTemp: '18 °C',
+  },
+  ...EXPANDED_MAIN_ORBITAL,
+  ...EXPANDED_MICRO_G_BITES,
+  ...EXPANDED_ELIXIRS,
+  ...EXPANDED_CELESTIAL_SWEETS,
+];
+
+export const DELIVERY_TIERS: DeliveryTier[] = [
+  {
+    id: 'station-airlock',
+    name: 'Station Airlock Transfer',
+    sanskritName: 'कक्षीय वायु-द्वार सेवा',
+    window: '12–18 min',
+    range: 'LEO Station Modules & Co-Orbiting Craft',
+    packaging: 'Active-Heated Magnetic Titanium Capsule',
+    description:
+      'Automated pressurized transfer drone delivers hot Stellar Thali platters and chilled elixirs straight to your orbital module airlock.',
+  },
+  {
+    id: 'lunar-cargo-pod',
+    name: 'Orbital Habitat & Lunar Pod',
+    sanskritName: 'चन्द्रयान पार्सल कक्ष',
+    window: '45–90 min Orbit Match',
+    range: 'High-Inclination Stations & Transfer Shuttles',
+    packaging: 'Phase-Change Cryo-Thermal Stasis Vault',
+    description:
+      'Multi-layer aerogel insulated pods maintain exact serving temperature across docking cycles with zero volatile aroma loss.',
+  },
+  {
+    id: 'earth-cryo-express',
+    name: 'Terrestrial Cryo-Capsule Express',
+    sanskritName: 'पृथ्वी शीघ्र कक्ष यान',
+    window: 'Same-Day Re-entry Window',
+    range: 'Select Terrestrial Spaceports & Coastal Hubs',
+    packaging: 'Heat-Shielded Bio-Quartz Culinary Capsule',
+    description:
+      'Experience Antariksha Rasa astronaut gastronomy on Earth via sub-orbital courier pods delivered directly to your terrestrial address.',
   },
 ];
 

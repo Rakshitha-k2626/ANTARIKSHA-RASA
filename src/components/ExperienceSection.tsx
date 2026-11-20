@@ -1,24 +1,27 @@
-import {Check, ChevronRight, Globe2} from 'lucide-react';
+import {ArrowRight, Check, ChevronRight, Globe2} from 'lucide-react';
 import {useState} from 'react';
 import {EXPERIENCES, type ExperienceItem} from '../data/cosmicData';
+import {type PageRoute} from './Navbar';
 import {ResilientImage} from './ResilientImage';
 
-export function ExperienceSection() {
+interface ExperienceSectionProps {
+  onNavigate: (route: PageRoute) => void;
+}
+
+export function ExperienceSection({onNavigate}: ExperienceSectionProps) {
   const [activeExp, setActiveExp] = useState<ExperienceItem>(EXPERIENCES[0]);
 
   return (
-    <section
-      id="experience"
-      className="relative z-20 mx-auto max-w-[1200px] px-5 py-24 sm:px-8 lg:py-32">
-      {/* Section Header */}
+    <section className="relative z-20 mx-auto max-w-[1200px] px-5 pt-28 pb-24 sm:px-8 lg:pt-32 lg:pb-28">
+      {/* Page Header */}
       <div className="flex flex-col justify-between gap-6 border-b border-white/10 pb-10 md:flex-row md:items-end">
         <div className="max-w-2xl">
           <p className="font-mono text-xs tracking-[0.24em] text-cyan-300 uppercase">
             Orbital Architecture · अनुभव
           </p>
-          <h2 className="font-display mt-3 text-[clamp(1.85rem,3.5vw,3rem)] leading-tight font-semibold tracking-wide text-balance text-white">
+          <h1 className="font-display mt-3 text-[clamp(2rem,4vw,3.4rem)] leading-tight font-semibold tracking-wide text-balance text-white">
             The Experience Above the Horizon
-          </h2>
+          </h1>
         </div>
         <p className="max-w-md text-sm leading-relaxed text-slate-300 sm:text-base">
           Three engineered environments blending classical Indian spatial
@@ -42,7 +45,6 @@ export function ExperienceSection() {
                   ? 'iridescent-border bg-[#0c1328]/90 shadow-[0_18px_50px_rgba(34,211,238,0.14)]'
                   : 'border border-white/10 bg-[#080d1d]/80 hover:-translate-y-1 hover:border-white/25'
               }`}>
-              {/* 4:3 Visual Frame */}
               <div className="relative aspect-[4/3] w-full overflow-hidden">
                 <ResilientImage
                   src={exp.image}
@@ -55,7 +57,6 @@ export function ExperienceSection() {
                 />
               </div>
 
-              {/* Card Body */}
               <div className="flex flex-1 flex-col justify-between p-6">
                 <div>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -64,9 +65,9 @@ export function ExperienceSection() {
                     <span>{exp.sanskritSubtitle}</span>
                   </div>
 
-                  <h3 className="font-display mt-3 text-xl font-semibold tracking-wider text-white">
+                  <h2 className="font-display mt-3 text-xl font-semibold tracking-wider text-white">
                     {exp.title}
-                  </h3>
+                  </h2>
 
                   <p className="mt-3 text-sm leading-relaxed text-slate-300">
                     {exp.description}
@@ -76,7 +77,9 @@ export function ExperienceSection() {
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs font-medium">
                   <span
                     className={
-                      isSelected ? 'text-cyan-300' : 'text-slate-300 group-hover:text-white'
+                      isSelected
+                        ? 'text-cyan-300'
+                        : 'text-slate-300 group-hover:text-white'
                     }>
                     {isSelected ? 'Viewing Deck Specs' : 'Inspect Environment'}
                   </span>
@@ -105,9 +108,9 @@ export function ExperienceSection() {
                 Deck Dossier · {activeExp.sanskritSubtitle}
               </span>
             </div>
-            <h3 className="font-display mt-2 text-2xl font-semibold tracking-wide text-white">
+            <h2 className="font-display mt-2 text-2xl font-semibold tracking-wide text-white">
               {activeExp.title}
-            </h3>
+            </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
               {activeExp.extendedDetail}
             </p>
@@ -154,6 +157,24 @@ export function ExperienceSection() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Next Page Navigation */}
+      <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8">
+        <button
+          type="button"
+          onClick={() => onNavigate('/menu')}
+          className="prismatic-gradient inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-full px-6 py-2.5 text-xs font-bold tracking-wider whitespace-nowrap text-slate-950 uppercase">
+          <span>Explore Cosmic Menu (84 Dishes)</span>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onNavigate('/reserve')}
+          className="inline-flex min-h-[46px] cursor-pointer items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap text-white uppercase hover:bg-white/10">
+          <span>Reserve Orbital Table</span>
+        </button>
       </div>
     </section>
   );

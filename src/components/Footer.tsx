@@ -1,18 +1,21 @@
 import {Check, Link2} from 'lucide-react';
 import {useState} from 'react';
+import {type PageRoute} from './Navbar';
 
 interface FooterProps {
-  onOpenVoyagePreview: () => void;
+  onNavigate: (route: PageRoute) => void;
 }
 
 const OFFICIAL_SITE_URL =
   'https://ais-pre-f6mpsli47gjk47xw4rqcta-562386129428.asia-east1.run.app';
 
-const FOOTER_LINKS = [
-  {label: 'Home', href: '#home'},
-  {label: 'Experience', href: '#experience'},
-  {label: 'Cosmic Menu', href: '#menu'},
-  {label: 'Our Story', href: '#story'},
+const FOOTER_LINKS: {label: string; route: PageRoute}[] = [
+  {label: 'Home', route: '/'},
+  {label: 'Experience', route: '/experience'},
+  {label: 'Cosmic Menu', route: '/menu'},
+  {label: 'Delivery & Reviews', route: '/delivery'},
+  {label: 'Our Story', route: '/story'},
+  {label: 'Reserve', route: '/reserve'},
 ];
 
 const SOCIAL_LINKS = [
@@ -21,15 +24,8 @@ const SOCIAL_LINKS = [
   {label: 'YouTube · @antariksharasa', href: 'https://youtube.com/@antariksharasa'},
 ];
 
-export function Footer({onOpenVoyagePreview}: FooterProps) {
+export function Footer({onNavigate}: FooterProps) {
   const [copiedUrl, setCopiedUrl] = useState(false);
-
-  const scrollToSection = (href: string) => {
-    const target = document.querySelector(href);
-    if (target) {
-      target.scrollIntoView({behavior: 'smooth'});
-    }
-  };
 
   const handleCopyOfficialLink = async () => {
     try {
@@ -48,10 +44,10 @@ export function Footer({onOpenVoyagePreview}: FooterProps) {
           {/* Brand Column */}
           <div className="md:col-span-5">
             <a
-              href="#home"
+              href="/"
               onClick={(e) => {
                 e.preventDefault();
-                scrollToSection('#home');
+                onNavigate('/');
               }}
               className="font-display text-xl font-bold tracking-[0.18em] text-white">
               ANTARIKSHA RASA
@@ -85,30 +81,22 @@ export function Footer({onOpenVoyagePreview}: FooterProps) {
           {/* Navigation Column */}
           <div className="md:col-span-4">
             <p className="font-mono text-xs tracking-wider text-slate-400 uppercase">
-              Navigation
+              Pages
             </p>
             <ul className="mt-4 flex flex-col gap-2.5">
               {FOOTER_LINKS.map((link) => (
-                <li key={link.href}>
+                <li key={link.route}>
                   <a
-                    href={link.href}
+                    href={link.route}
                     onClick={(e) => {
                       e.preventDefault();
-                      scrollToSection(link.href);
+                      onNavigate(link.route);
                     }}
                     className="text-sm text-slate-300 transition-colors hover:text-cyan-300">
                     {link.label}
                   </a>
                 </li>
               ))}
-              <li>
-                <button
-                  type="button"
-                  onClick={onOpenVoyagePreview}
-                  className="cursor-pointer text-sm text-slate-300 transition-colors hover:text-cyan-300">
-                  Reserve
-                </button>
-              </li>
             </ul>
           </div>
 
